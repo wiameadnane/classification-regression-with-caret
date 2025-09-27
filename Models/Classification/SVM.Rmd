@@ -1,0 +1,167 @@
+---
+title: "regression Project"
+output: html_document
+date: "2024-12-15"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## R Markdown
+
+This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
+
+When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
+
+```{r cars}
+summary(cars)
+```
+
+## Including Plots
+
+You can also embed plots, for example:
+
+```{r pressure, echo=FALSE}
+plot(pressure)
+```
+
+Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
+```{r}
+data <- read.csv("alzheimers_disease_data.csv")
+head(data)
+```
+```{r}
+colnames(is.na(data))
+```
+
+```{r}
+data <- subset(data, select = -c(PatientID, DoctorInCharge))
+print("done")
+```
+```{r}
+data_ <- subset(data, select = -Diagnosis)
+data_scaled <- scale(data_)
+head(data_scaled)
+```
+```{r}
+pca_result <- prcomp(data_scaled, center = FALSE, scale. = FALSE)
+summary(pca_result)
+```
+
+```{r}
+eigenvalues <- pca_result$sdev^2
+eigenvalues
+```
+```{r}
+cum_var <- cumsum(eigenvalues) / sum(eigenvalues)
+cum_var
+```
+```{r}
+num_pcs <- which(cum_var >= 0.85)[1]
+data_pca <- as.data.frame(pca_result$x)
+data_reduced <- data_pca[, 1:num_pcs]
+data_reduced <- cbind(data_reduced, Diagnosis = data$Diagnosis )
+cat(dim(data_reduced))
+head(data_reduced)
+```
+
+
+```{r}
+library(caret)
+library(e1071)
+```
+
+```{r}
+# View the new dataset
+head(data_reduced)
+```
+```{r}
+train_index <- createDataPartition(data_reduced$Diagnosis, p = 0.8, list = FALSE)
+train_data <- data_reduced[train_index, ]
+test_data <- data_reduced[-train_index, ]
+
+# Separate Features (X) and Target (Y) for each set
+x_train <- train_data[, !names(train_data) %in% "Diagnosis"]
+y_train <- as.factor(train_data$Diagnosis)
+
+x_test <- test_data[, !names(test_data) %in% "Diagnosis"]
+y_test <- as.factor(test_data$Diagnosis)
+
+```
+```{r}
+cat("x_train : ", dim(x_train), "\n")
+cat("y_train : ", length(y_train), "\n")
+cat("x_test : ", dim(x_test), "\n")
+cat("y_test : ", length(y_test), "\n")
+```
+```{r}
+svm_model <- train(
+  x = x_train,
+  y = y_train,
+  method = "svmRadial",
+  preProcess = c("center", "scale"),
+  trControl = trainControl(method = "cv", number = 5),
+  probability = TRUE
+)
+
+summary(svm_model)
+```
+
+```{r}
+svm_pred_train <- predict(svm_model, newdata = x_train)
+confusionMatrix(svm_pred_train, y_train)
+```
+```{r}
+pred <- predict(svm_model, x_test)
+confusionMatrix(pred, y_test)
+```
+```{r}
+#courbe Accuracy
+str(svm_model$results)
+# Si 'Accuracy' est disponible, tracer la courbe
+ggplot(svm_model$results, aes(x = C, y = Accuracy)) +
+  geom_line(color = "blue") +
+  geom_point(color = "red") +
+  labs(
+    title = "Courbe d'évolution de l'Accuracy",
+    x = "Paramètre C",
+    y = "Accuracy"
+  ) +
+  theme_minimal()
+```
+```{r}
+#courbe ROC
+# Load necessary libraries
+library(pROC)
+
+# Assuming `y_test` contains true labels and `y_pred` contains predicted probabilities
+roc_curve <- roc(as.numeric(y_test), as.numeric(pred))
+
+# Extract FPR and TPR
+fpr <- 1 - roc_curve$specificities
+tpr <- roc_curve$sensitivities
+plot(fpr, tpr, type = "l", col = "blue", lwd = 2,
+     xlab = "False Positive Rate (FPR)", 
+     ylab = "True Positive Rate (TPR)", 
+     main = "ROC Curve")
+abline(a = 0, b = 1, lty = 2, col = "red")
+
+
+```
+```{r}
+#courbe DET
+fpr <- 1 - roc_curve$specificities
+fnr <- 1 - roc_curve$sensitivities
+
+plot(fpr, fnr, type = "l", col = "blue", lwd = 2,
+     xlab = "False Positive Rate (FPR) ", 
+     ylab = "False Negative Rate (FNR) ", 
+     main = "(DET) Curve"
+     )  # Axes logarithmiques
+
+
+```
+
+
+

@@ -1,0 +1,172 @@
+---
+title: "Projet R"
+author: "Hiba"
+date: "2024-12-15"
+output: html_document
+---
+# Charger les données
+```{r }
+data <- read.csv("alzheimers_disease_data.csv")
+head(data)
+str(data)
+```
+
+# Nombre de valeurs manquantes par colonne
+
+```{r }
+data <- subset(data, select = -c(DoctorInCharge,PatientID))
+colSums(is.na(data)) 
+#pas de valeurs manquantes
+```
+
+```{r }
+library(pheatmap)
+```
+
+
+```{r }
+data_numeric <- data[, sapply(data, is.numeric)]  # Sélectionner les colonnes numériques
+cor_matrix <- cor(data_numeric, use = "complete.obs")  # Calculer la matrice de corrélation
+
+# Créer la heatmap
+pheatmap(cor_matrix, 
+         main = "Heatmap de la Corrélation", 
+         clustering_distance_rows = "euclidean", 
+         clustering_distance_cols = "euclidean", 
+         clustering_method = "complete", 
+         color = colorRampPalette(c("magenta", "pink", "white","cyan"))(100),
+         cellwidth = 8,  # Augmente la largeur des cellules
+         cellheight = 8, # Augmente la hauteur des cellules
+         fontsize = 10,   # Taille de la police
+         fontsize_row = 8, # Taille de la police des lignes
+         fontsize_col = 8) # Taille de la police des colonnes
+```
+
+```{r }
+cor_matrix <- cor(data[ , sapply(data, is.numeric)])
+cor_with_diagnosis <- cor_matrix[ , "Diagnosis"]  
+cor_with_diagnosis
+
+```
+
+```{r }
+seuil <- 0.02
+
+# Calcul des corrélations
+cor_with_diagnosis <- cor(data_numeric)["Diagnosis", ]
+
+# Conserver les features avec |corr| > seuil
+selected_features <- names(cor_with_diagnosis[abs(cor_with_diagnosis) > seuil])
+print(selected_features)
+
+```
+```{r }
+data$Diagnosis <- as.factor(data$Diagnosis)
+```
+
+
+```{r }
+# Charger les packages
+library(caret)
+library(xgboost)
+
+# Diviser les données en train/test
+set.seed(123)
+train_index <- createDataPartition(data$Diagnosis, p = 0.7, list = FALSE)
+
+train_data <- data[train_index, ]
+test_data <- data[-train_index, ]
+
+X_train <- train_data[, -ncol(train_data)]
+Y_train <- train_data$Diagnosis
+X_test <- test_data[, -ncol(test_data)]
+Y_test <- test_data$Diagnosis
+```
+
+
+
+
+```{r }
+control <- trainControl(method = "cv", number = 5, verboseIter = TRUE)
+# Exemple de grille pour les hyperparamètres de XGBoost
+tuneGrid <- expand.grid(
+  nrounds = seq(10, 100, by = 10),       # Nombre d'itérations
+  max_depth = 10,          # Profondeur des arbres
+  eta =  0.05,        # Taux d'apprentissage
+  gamma =2,                       # Prise en compte de la régularisation
+  colsample_bytree = 0.8,            # Proportions d'échantillons pour chaque arbre
+  min_child_weight = 5,             # Poids minimum par enfant
+  subsample = 0.7                     # Fraction d'échantillons
+)
+train_data <- cbind(X_train, Diagnosis = Y_train)
+
+# Entraînement du modèle XGBoost avec une grille de recherche
+model_xgb <- train(
+  Diagnosis ~ .,                    # Formule pour la classification
+  data = train_data,                   # Données d'entrée
+  method = "xgbTree",                # Modèle XGBoost avec arbre
+  trControl = control, # Validation croisée
+  tuneGrid = tuneGrid,               # Passer la grille de recherche
+  metric = "Accuracy"                # Critère de performance
+)
+
+# Vérification du modèle
+print(model_xgb)
+
+```
+
+
+```{r }
+
+# Prédictions sur l'ensemble de test
+test_predictions <- predict(model_xgb, X_test)
+# Matrice de confusion
+confusion_matrix <- confusionMatrix(test_predictions, Y_test)
+print(confusion_matrix)
+```
+
+
+
+```{r }
+xgb_results <- model_xgb$results
+library(ggplot2)
+
+ggplot(xgb_results, aes(x = nrounds, y = Accuracy)) +
+  geom_line(color = "blue") +
+  geom_point(color = "red") +
+  labs(
+    title = "Courbe d'évolution de l'Accuracy",
+    x = "Nombre d'itérations (nrounds)",
+    y = "Accuracy"
+  ) +
+  theme_minimal()
+```
+```{r }
+# Load necessary libraries
+library(pROC)
+
+# Assuming `y_test` contains true labels and `y_pred` contains predicted probabilities
+roc_curve <- roc(as.numeric(Y_test), as.numeric(test_predictions))
+
+# Extract FPR and TPR
+fpr <- 1 - roc_curve$specificities
+tpr <- roc_curve$sensitivities
+plot(fpr, tpr, type = "l", col = "blue", lwd = 2,
+     xlab = "False Positive Rate (FPR)", 
+     ylab = "True Positive Rate (TPR)", 
+     main = "ROC Curve")
+abline(a = 0, b = 1, lty = 2, col = "red")
+
+
+
+fpr <- 1 - roc_curve$specificities
+fnr <- 1 - roc_curve$sensitivities
+
+plot(fpr, fnr, type = "l", col = "blue", lwd = 2,
+     xlab = "False Positive Rate (FPR) ", 
+     ylab = "False Negative Rate (FNR) ", 
+     main = "(DET) Curve"
+     )  # Axes logarithmiques
+
+
+```
