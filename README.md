@@ -13,7 +13,6 @@ This project was developed as part of a comprehensive study on machine learning 
 - [Installation and Setup](#installation-and-setup)
 - [Usage](#usage)
 - [Results](#results)
-- [Contributors](#contributors)
 
 ## Project Overview
 
@@ -164,29 +163,15 @@ The SVM model demonstrated good generalization with balanced performance between
 3. **Hyperparameter Tuning**: Cross-validation was crucial for optimal model performance
 4. **Data Quality**: Proper preprocessing and feature selection were essential for model success
 
-## Contributors
-
-This project was developed collaboratively by a team of students from the École d'Ingénierie Digitale et d'Intelligence Artificielle:
-
-- **Imane AMAAZ**
-- **Hiba SOFYAN**
-- **Imane BENCHRIF**
-- **Chantry OLANDA-EYIBA**
-- **NTOTOMENGUEMA Neil-alain-lubin**
-- **Wiame ADNANE** (SVM Classification specialist)
-- **Naima SAIDI**
-- **AIT TEMGHART Hind**
-- **Zainab Jamil**
-
-**Supervisor**: Prof. Abderazzak MOUIHA
-
-**Institution**: Euro-Mediterranean University of Fez (UEMF)
-**Academic Year**: 2024-2025
-**Date**: December 20, 2024
-
 ## License
 
 This project is developed for educational purposes as part of the Artificial Intelligence Engineering curriculum.
+
+**Institution**: Euro-Mediterranean University of Fez (UEMF)
+
+**Academic Year**: 2024-2025
+
+**Date**: December 20, 2024
 
 ## References
 
