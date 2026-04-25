@@ -163,16 +163,6 @@ The SVM model demonstrated good generalization with balanced performance between
 3. **Hyperparameter Tuning**: Cross-validation was crucial for optimal model performance
 4. **Data Quality**: Proper preprocessing and feature selection were essential for model success
 
-## License
-
-This project is developed for educational purposes as part of the Artificial Intelligence Engineering curriculum.
-
-**Institution**: Euro-Mediterranean University of Fez (UEMF)
-
-**Academic Year**: 2024-2025
-
-**Date**: December 20, 2024
-
 ## References
 
 1. Max Kuhn. The caret Package. Available at: https://topepo.github.io/caret/
